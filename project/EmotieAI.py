@@ -98,11 +98,8 @@ def analyseer_emotie(tekst):
         ("kan niet stoppen met lachen", 5),
         ("niet stoppen met lachen", 5),
         ("zo blij", 4),
-        ("echt blij", 4),
-        ("mega blij", 4),
-        ("super blij", 4),
-        ("ontzettend blij", 4),
         ("heel blij", 4),
+        ("ontzettend blij", 4),
         ("ik heb het gehaald", 5),
         ("het is gelukt", 4),
         ("alles gaat goed", 4),
@@ -151,16 +148,13 @@ def analyseer_emotie(tekst):
         ("wat een onzin", 5),
         ("dit is onzin", 5),
         ("zo moe van", 5),
-        ("echt moe van", 5),
         ("word moe van", 5),
         ("zo klaar met", 5),
         ("ben klaar met", 5),
-        ("echt klaar met", 5),
         ("helemaal klaar", 5),
         ("doet altijd moeilijk", 4),
         ("altijd moeilijk", 4),
         ("zo irritant", 4),
-        ("echt irritant", 4),
         ("mega irritant", 4),
         ("verschrikkelijk irritant", 5),
         ("ik haat", 5),
@@ -175,14 +169,12 @@ def analyseer_emotie(tekst):
         ("deze shit", 4),
         ("dit gedoe", 4),
         ("zo boos", 5),
-        ("echt boos", 5),
     ]
     
     # === ANGST/STRESS - STERKE UITDRUKKINGEN ===
     angstige_uitdrukkingen = [
         ("voel me nerveus", 5),
         ("zo nerveus", 5),
-        ("echt nerveus", 5),
         ("bang dat ik", 5),
         ("ben bang dat", 5),
         ("ga verpesten", 5),
@@ -192,7 +184,6 @@ def analyseer_emotie(tekst):
         ("kan niet slapen", 4),
         ("niet meer slapen", 4),
         ("zo gestrest", 5),
-        ("echt gestrest", 5),
         ("mega stress", 5),
         ("in paniek", 5),
         ("panieking", 5),
@@ -219,7 +210,6 @@ def analyseer_emotie(tekst):
     # === BESCHAAMD - STERKE UITDRUKKINGEN ===
     beschaamde_uitdrukkingen = [
         ("zo gênant", 5),
-        ("echt gênant", 5),
         ("mega gênant", 5),
         ("super gênant", 5),
         ("door de grond", 5),
@@ -228,7 +218,6 @@ def analyseer_emotie(tekst):
         ("waarom zei ik", 5),
         ("had ik maar", 4),
         ("zo ongemakkelijk", 5),
-        ("echt ongemakkelijk", 5),
         ("voel me ongemakkelijk", 5),
         ("schaam me", 5),
         ("zo beschaamd", 5),
@@ -243,7 +232,6 @@ def analyseer_emotie(tekst):
         ("maakt niet uit", 5),
         ("alles is saai", 5),
         ("zo saai", 4),
-        ("echt saai", 4),
         ("geen energie voor", 4),
         ("doe maar wat", 4),
         ("whatever", 4),
@@ -313,9 +301,7 @@ def analyseer_emotie(tekst):
         ("mega excited", 5),
         ("super excited", 5),
         ("te gek", 4),
-        ("echt te gek", 5),
         ("zo gaaf", 4),
-        ("echt gaaf", 4),
         ("let's go", 4),
         ("letsgo", 4),
     ]
@@ -373,12 +359,80 @@ def analyseer_emotie(tekst):
             scores["enthousiast"] += score
     
     # ============================================================================
+    # STAP 1.5: INTENSIFIER DETECTIE
+    # ============================================================================
+    # Intensifiers zoals "super", "mega", "echt", "heel", "zo" versterken emoties
+    # Ze moeten de emotie die volgt VERSTERKEN, niet zelf een emotie zijn
+    
+    intensifiers = {
+        "super": 2.0,
+        "mega": 2.5,
+        "echt": 1.8,
+        "heel": 1.5,
+        "zo": 1.7,
+        "verschrikkelijk": 2.0,
+        "ontzettend": 2.0,
+        "enorm": 2.0,
+        "extreem": 2.5,
+        "gigantisch": 2.0,
+    }
+    
+    # Emotie woorden met hun categorie
+    emotie_mapping = {
+        # Boos
+        "boos": "boos", "kwaad": "boos", "woedend": "boos", "gefrustreerd": "boos",
+        "geïrriteerd": "boos", "irritant": "boos", "pissed": "boos", "chagrijnig": "boos",
+        
+        # Verdrietig  
+        "verdrietig": "verdrietig", "down": "verdrietig", "depri": "verdrietig", 
+        "somber": "verdrietig", "triest": "verdrietig", "eenzaam": "verdrietig",
+        "ellendig": "verdrietig", "leeg": "verdrietig", "alleen": "verdrietig",
+        
+        # Blij
+        "blij": "blij", "gelukkig": "blij", "vrolijk": "blij", "happy": "blij",
+        "fijn": "blij", "leuk": "blij", "tevreden": "blij",
+        
+        # Moe
+        "moe": "moe", "uitgeput": "moe", "bekaf": "moe", "slaperig": "moe",
+        "doodmoe": "moe", "tired": "moe", "op": "moe",
+        
+        # Bang
+        "bang": "bang", "angstig": "bang", "zenuwachtig": "bang", "nerveus": "bang",
+        "gestrest": "gestrest", "stressed": "gestrest", "gespannen": "gestrest",
+        
+        # Enthousiast
+        "enthousiast": "enthousiast", "excited": "enthousiast", "hyped": "enthousiast",
+        
+        # Ziek
+        "ziek": "ziek", "misselijk": "ziek", "onwel": "ziek",
+        
+        # Verward
+        "verward": "verward", "confused": "verward",
+    }
+    
+    # Check voor intensifier + emotie combinaties
+    import re
+    woorden = tekst_lower.split()
+    
+    for i in range(len(woorden) - 1):
+        woord = woorden[i].strip('.,!?;:')
+        volgend_woord = woorden[i + 1].strip('.,!?;:')
+        
+        if woord in intensifiers:
+            multiplier = intensifiers[woord]
+            
+            # Check of het volgende woord een emotie is
+            if volgend_woord in emotie_mapping:
+                emotie_categorie = emotie_mapping[volgend_woord]
+                scores[emotie_categorie] += 3 * multiplier
+    
+    # ============================================================================
     # STAP 2: LOSSE WOORDEN (LAGERE SCORES)
     # ============================================================================
     
     # === BLIJHEID ===
     blije_woorden = [
-        "blij", "happy", "gelukkig", "fijn", "leuk", "geweldig", "super", 
+        "blij", "happy", "gelukkig", "fijn", "leuk", "geweldig",
         "fantastisch", "top", "yes", "yeah", "joepie", "hoera",
         "genieten", "lachen", "lol", "plezier", "yay", "jaaa", "nice",
         "perfect", "heerlijk", "zalig", "mooi", "prachtig",
