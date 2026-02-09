@@ -2,7 +2,7 @@ def emotie_detector():
     """
     Hoofdfunctie voor de Emotie AI met mooie UI
     """
-    
+    ##### TEST PUSH
     # ANSI kleurcodes voor mooie output
     RESET = "\033[0m"
     BOLD = "\033[1m"
